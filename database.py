@@ -1,13 +1,33 @@
-import sqlite3
+from dotenv import load_dotenv
+load_dotenv()  
+
+import psycopg2
+import os
+from urllib.parse import urlparse
 
 def init_db():
-    """Initialize the SQLite database with auto-incrementing IDs."""
-    conn = sqlite3.connect('text_storage.db', check_same_thread=False)
-    c = conn.cursor()
+   
+    connection_string = os.getenv("DATABASE_URL")
     
-    # Create table with auto-incrementing integer ID
+    if not connection_string:
+        raise ValueError("DATABASE_URL environment variable is not set.")
+    
+    # Parse the connection string
+    parsed = urlparse(connection_string)
+    
+    # Connect to the database with SSL
+    conn = psycopg2.connect(
+        dbname=parsed.path[1:],  # Remove the leading '/'
+        user=parsed.username,
+        password=parsed.password,
+        host=parsed.hostname,
+        port=parsed.port,
+        sslmode="require"  # Enable SSL
+    )
+    
+    c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS texts
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                 (id SERIAL PRIMARY KEY, 
                   content TEXT,
                   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
     

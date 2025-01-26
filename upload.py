@@ -8,7 +8,10 @@ from database import conn
 def extract_text_from_pdf(file):
     """Extract text from a PDF file."""
     reader = PdfReader(file)
-    return " ".join([page.extract_text() or "" for page in reader.pages])
+    text = ""
+    for page in reader.pages:
+        text += page.extract_text() or ""
+    return text
 
 def extract_text_from_image(image):
     """Extract text from an image using EasyOCR."""
@@ -25,31 +28,39 @@ if option == "Upload Document":
     uploaded_file = st.file_uploader("Upload PDF or Image", type=["pdf", "png", "jpg", "jpeg"])
     
     if uploaded_file:
-        text = extract_text_from_pdf(uploaded_file) if uploaded_file.type == "application/pdf" \
-               else extract_text_from_image(Image.open(uploaded_file))
+        if uploaded_file.type == "application/pdf":
+            text = extract_text_from_pdf(uploaded_file)
+        else:
+            image = Image.open(uploaded_file)
+            text = extract_text_from_image(image)
         
         if text.strip():
-            # Store text in database and get auto-generated ID
+            # Store text in Neon database
             c = conn.cursor()
-            c.execute("INSERT INTO texts (content) VALUES (?)", (text,))
-            text_id = c.lastrowid  # Get the auto-incremented ID
+            c.execute("INSERT INTO texts (content) VALUES (%s) RETURNING id", (text,))
+            text_id = c.fetchone()[0]  
             conn.commit()
             
             st.success(f"Text extracted! Your Document ID: **{text_id}**")
-            # st.image(f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={text_id}")
+            
+        else:
+            st.warning("No text could be extracted")
 
 elif option == "Take Picture":
     picture = st.camera_input("Take a picture")
     
     if picture:
-        text = extract_text_from_image(Image.open(BytesIO(picture.getvalue())))
+        image = Image.open(BytesIO(picture.getvalue()))
+        text = extract_text_from_image(image)
         
         if text.strip():
-            # Store text in database and get auto-generated ID
+            # Store text in Neon database
             c = conn.cursor()
-            c.execute("INSERT INTO texts (content) VALUES (?)", (text,))
-            text_id = c.lastrowid  # Get the auto-incremented ID
+            c.execute("INSERT INTO texts (content) VALUES (%s) RETURNING id", (text,))
+            text_id = c.fetchone()[0]  # Get the auto-generated ID
             conn.commit()
             
             st.success(f"Text extracted! Your Document ID: **{text_id}**")
-            # st.image(f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={text_id}")
+            
+        else:
+            st.warning("No text could be extracted")
