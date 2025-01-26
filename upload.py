@@ -17,12 +17,13 @@ def extract_text_from_image(image):
     results = reader.readtext(image)
     return " ".join([result[1] for result in results])
 
+
 # Main processing app
 st.title("Document Processing Center")
 
 option = st.radio("Choose input method", ("Upload Document", "Take Picture"))
-display_app_url = "https://display.streamlit.app"  
-# display_app_url = "http://localhost:8000"  
+display_app_url = "https://display.streamlit.app/"  
+
 
 if option == "Upload Document":
     uploaded_file = st.file_uploader("Upload PDF or Image", type=["pdf", "png", "jpg", "jpeg"])
