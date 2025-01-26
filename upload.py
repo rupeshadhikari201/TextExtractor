@@ -1,54 +1,56 @@
+# upload_app.py
 import streamlit as st
 from PyPDF2 import PdfReader
 import easyocr
 from PIL import Image
 from io import BytesIO
-import requests
+import urllib.parse
 
 def extract_text_from_pdf(file):
-    try:
-        reader = PdfReader(file)
-        text = ""
-        for page in reader.pages:
-            text += page.extract_text() or ""
-        return text
-    except Exception as e:
-        st.error(f"Error while reading the PDF: {e}")
-        return ""
+    reader = PdfReader(file)
+    text = ""
+    for page in reader.pages:
+        text += page.extract_text() or ""
+    return text
 
 def extract_text_from_image(image):
-    try:
-        reader = easyocr.Reader(['en'], gpu=False)
-        results = reader.readtext(image)
-        text = " ".join([result[1] for result in results])
-        return text
-    except Exception as e:
-        st.error(f"Error while processing the image: {e}")
-        return ""
+    reader = easyocr.Reader(['en'], gpu=False)
+    results = reader.readtext(image)
+    return " ".join([result[1] for result in results])
 
-st.title("Upload and Extract Text")
+# Main processing app
+st.title("Document Processing Center")
 
-uploaded_file = st.file_uploader("Upload a PDF or Image", type=["pdf", "png", "jpg", "jpeg"])
+option = st.radio("Choose input method", ("Upload Document", "Take Picture"))
+display_app_url = "https://display.streamlit.app"  
 
-if uploaded_file:
-    if uploaded_file.type == "application/pdf":
-        text = extract_text_from_pdf(uploaded_file)
-    else:
-        image = Image.open(BytesIO(uploaded_file.read()))
-        text = extract_text_from_image(image)
+if option == "Upload Document":
+    uploaded_file = st.file_uploader("Upload PDF or Image", type=["pdf", "png", "jpg", "jpeg"])
     
-    if text.strip():
-        st.success("Text extracted successfully!")
-        display_url = st.text_input("Enter the display URL to forward the content:")
-        if st.button("Forward Content"):
-            if display_url:
-                params = {"content": text}
-                response = requests.get(display_url, params=params)
-                if response.status_code == 200:
-                    st.success("Content forwarded successfully!")
-                else:
-                    st.error("Failed to forward the content. Check the display URL.")
-            else:
-                st.warning("Please enter a valid display URL.")
-    else:
-        st.warning("No text could be extracted.")
+    if uploaded_file:
+        if uploaded_file.type == "application/pdf":
+            text = extract_text_from_pdf(uploaded_file)
+        else:
+            image = Image.open(uploaded_file)
+            text = extract_text_from_image(image)
+        
+        if text.strip():
+            encoded_text = urllib.parse.quote(text.encode('utf-8'))
+            redirect_url = f"{display_app_url}?text={encoded_text}"
+            st.markdown(f"[View Enhanced Version]({redirect_url})")
+        else:
+            st.warning("No text could be extracted")
+
+elif option == "Take Picture":
+    picture = st.camera_input("Take a picture")
+    
+    if picture:
+        image = Image.open(BytesIO(picture.getvalue()))
+        text = extract_text_from_image(image)
+        
+        if text.strip():
+            encoded_text = urllib.parse.quote(text.encode('utf-8'))
+            redirect_url = f"{display_app_url}?text={encoded_text}"
+            st.markdown(f"[View Enhanced Version]({redirect_url})")
+        else:
+            st.warning("No text could be extracted")
