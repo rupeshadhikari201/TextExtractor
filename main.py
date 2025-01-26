@@ -4,7 +4,7 @@ import easyocr
 from PIL import Image
 import html
 from io import BytesIO
-import pyttsx3  # For text-to-speech
+# import pyttsx3  # For text-to-speech
 
 def extract_text_from_pdf(file):
     """Extract text from a PDF file."""
@@ -29,21 +29,21 @@ def extract_text_from_image(image):
         st.error(f"An error occurred while processing the image: {e}")
         return ""
 
-def text_to_speech(text):
-    """Convert text to speech."""
-    try:
-        engine = pyttsx3.init()
+# def text_to_speech(text):
+#     """Convert text to speech."""
+#     try:
+#         engine = pyttsx3.init()
         
-        """ Rate"""
-        rate = engine.getProperty('rate')
-        print(rate)
-        engine.setProperty('rate', 100)
+#         """ Rate"""
+#         rate = engine.getProperty('rate')
+#         print(rate)
+#         engine.setProperty('rate', 100)
         
         
-        engine.say(text)
-        engine.runAndWait()
-    except Exception as e:
-        st.error(f"An error occurred during text-to-speech: {e}")
+#         engine.say(text)
+#         engine.runAndWait()
+#     except Exception as e:
+#         st.error(f"An error occurred during text-to-speech: {e}")
 
 # Streamlit App
 st.title("Text Extractor: Upload a Document or Take a Picture")
@@ -79,8 +79,8 @@ if option == "Upload Document":
             )
 
             # Add a button to read the text aloud
-            if st.button("Read Aloud"):
-                text_to_speech(text)
+            # if st.button("Read Aloud"):
+            #     text_to_speech(text)
         else:
             st.warning("No text could be extracted from the PDF.")
 
