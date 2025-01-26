@@ -2,9 +2,38 @@
 import streamlit as st
 import urllib.parse
 import html
+import re
+
+def process_text(text):
+    """Clean and structure the extracted text"""
+    # Preserve paragraph breaks
+    text = re.sub(r'\n\s*\n', '\n\n', text)
+    
+    # Convert bullet points to HTML lists
+    text = re.sub(r'^(\s*•\s+)(.*)$', r'<li>\2</li>', text, flags=re.MULTILINE)
+    text = re.sub(r'(<li>.*</li>\n)+', r'<ul>\g<0></ul>\n', text)
+    
+    # Detect headings (lines ending with colons or in all caps)
+    text = re.sub(r'^([A-Z][A-Z\s]+:?)\s*$', r'<h3 class="heading">\1</h3>', text, flags=re.MULTILINE)
+    
+    # Convert URLs to clickable links
+    text = re.sub(r'(https?://\S+)', r'<a href="\1" target="_blank">\1</a>', text)
+    
+    # Preserve original paragraph structure
+    paragraphs = text.split('\n\n')
+    processed = []
+    
+    for p in paragraphs:
+        p = p.strip()
+        if p:
+            if p.startswith('<ul>') or p.startswith('<h3'):
+                processed.append(p)
+            else:
+                processed.append(f'<p>{p}</p>')
+    
+    return '\n'.join(processed)
 
 def main():
-    # Get query parameters using new st.query_params API
     query_params = st.query_params
     encoded_text = query_params.get("text", "")
     
@@ -47,15 +76,43 @@ def main():
             padding: 20px;
             border-radius: 10px;
             margin: 10px 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            hyphens: auto;
         }}
+        
+        .content p {{
+            margin: 0.8em 0;
+        }}
+        
+        .content ul {{
+            margin: 0.8em 20px;
+            padding-left: 20px;
+            list-style-type: disc;
+        }}
+        
+        .content h3 {{
+            font-size: 1.2em;
+            margin: 1.2em 0 0.5em;
+            padding-bottom: 3px;
+            border-bottom: 2px solid {font_color};
+        }}
+        
+        .content a {{
+            color: {font_color};
+            text-decoration: underline;
+            word-break: break-all;
+        }}
+        
         @keyframes highlight {{ 0% {{background: yellow;}} 100% {{background: transparent;}} }}
         .highlight {{ animation: highlight 2s; }}
     </style>
     """
     st.markdown(custom_css, unsafe_allow_html=True)
 
-    # Text display with additional features
-    st.markdown(f'<div class="content">{html.escape(decoded_text)}</div>', unsafe_allow_html=True)
+    # Process and display text
+    processed_text = process_text(html.escape(decoded_text))
+    st.markdown(f'<div class="content">{processed_text}</div>', unsafe_allow_html=True)
     
     # Additional accessibility features
     with st.expander("More Accessibility Options"):
@@ -90,4 +147,4 @@ def main():
         """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
-    main() 
+    main()

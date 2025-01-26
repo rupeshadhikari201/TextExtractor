@@ -1,4 +1,3 @@
-# upload_app.py
 import streamlit as st
 from PyPDF2 import PdfReader
 import easyocr
@@ -23,6 +22,7 @@ st.title("Document Processing Center")
 
 option = st.radio("Choose input method", ("Upload Document", "Take Picture"))
 display_app_url = "https://display.streamlit.app"  
+# display_app_url = "http://localhost:8000"  
 
 if option == "Upload Document":
     uploaded_file = st.file_uploader("Upload PDF or Image", type=["pdf", "png", "jpg", "jpeg"])
