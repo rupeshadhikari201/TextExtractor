@@ -36,7 +36,7 @@ if option == "Upload Document":
             conn.commit()
             
             st.success(f"Text extracted! Your Document ID: **{text_id}**")
-            st.image(f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={text_id}")
+            # st.image(f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={text_id}")
 
 elif option == "Take Picture":
     picture = st.camera_input("Take a picture")
@@ -52,4 +52,4 @@ elif option == "Take Picture":
             conn.commit()
             
             st.success(f"Text extracted! Your Document ID: **{text_id}**")
-            st.image(f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={text_id}")
+            # st.image(f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={text_id}")
