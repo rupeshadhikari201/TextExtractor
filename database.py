@@ -1,38 +1,23 @@
-from dotenv import load_dotenv
-load_dotenv()  
+import firebase_admin
+from firebase_admin import credentials, firestore
 
-import psycopg2
-import os
-from urllib.parse import urlparse
+def init_firebase():
+    """Initialize Firebase Admin SDK if not already initialized."""
+    try:
+        # Check if Firebase app is already initialized
+        if not firebase_admin._apps:
+            # Load Firebase credentials
+            cred = credentials.Certificate("firebase-key.json")
+            firebase_admin.initialize_app(cred)
+            print("Firebase initialized successfully!")
+        else:
+            print("Firebase already initialized.")
+        
+        # Return Firestore client
+        return firestore.client()
+    except Exception as e:
+        print(f"Error initializing Firebase: {e}")
+        raise
 
-def init_db():
-   
-    connection_string = os.getenv("DATABASE_URL")
-    
-    if not connection_string:
-        raise ValueError("DATABASE_URL environment variable is not set.")
-    
-    # Parse the connection string
-    parsed = urlparse(connection_string)
-    
-    # Connect to the database with SSL
-    conn = psycopg2.connect(
-        dbname=parsed.path[1:],  # Remove the leading '/'
-        user=parsed.username,
-        password=parsed.password,
-        host=parsed.hostname,
-        port=parsed.port,
-        sslmode="require"  # Enable SSL
-    )
-    
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS texts
-                 (id SERIAL PRIMARY KEY, 
-                  content TEXT,
-                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
-    
-    conn.commit()
-    return conn
-
-# Initialize the database
-conn = init_db()
+# Initialize Firestore
+db = init_firebase()

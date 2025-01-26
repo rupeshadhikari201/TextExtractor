@@ -1,9 +1,17 @@
 import streamlit as st
+from database import db  # Import Firestore client
+from firebase_admin import firestore
 from PyPDF2 import PdfReader
 import easyocr
 from PIL import Image
 from io import BytesIO
-from database import conn
+import random
+import string
+
+def generate_readable_id(length=5):
+    """Generate a random alphanumeric ID."""
+    characters = string.ascii_letters + string.digits  # A-Z, a-z, 0-9
+    return ''.join(random.choice(characters) for _ in range(length))
 
 def extract_text_from_pdf(file):
     """Extract text from a PDF file."""
@@ -19,48 +27,65 @@ def extract_text_from_image(image):
     results = reader.readtext(image)
     return " ".join([result[1] for result in results])
 
-# Main app
-st.title("Document Processing Center")
+def save_text_to_firebase(text):
+    """Save text to Firebase Firestore."""
+    try:
+        # Generate a readable ID for the text
+        text_id = generate_readable_id()
+        
+        # Save the text to Firestore
+        db.collection("texts").document(text_id).set({
+            "content": text,
+            "created_at": firestore.SERVER_TIMESTAMP
+        })
+        return text_id
+    except Exception as e:
+        st.error(f"Error saving text to Firebase: {e}")
+        return None
 
-option = st.radio("Choose input method", ("Upload Document", "Take Picture"))
+def main():
+    st.title("Text Upload App")
 
-if option == "Upload Document":
-    uploaded_file = st.file_uploader("Upload PDF or Image", type=["pdf", "png", "jpg", "jpeg"])
-    
-    if uploaded_file:
-        if uploaded_file.type == "application/pdf":
-            text = extract_text_from_pdf(uploaded_file)
-        else:
-            image = Image.open(uploaded_file)
+    # Select input method
+    option = st.radio("Choose input method", ("Upload Document", "Take Picture"))
+
+    if option == "Upload Document":
+        uploaded_file = st.file_uploader("Upload PDF or Image", type=["pdf", "png", "jpg", "jpeg"])
+        
+        if uploaded_file:
+            if uploaded_file.type == "application/pdf":
+                # Extract text from PDF
+                text = extract_text_from_pdf(uploaded_file)
+            else:
+                # Extract text from image
+                image = Image.open(uploaded_file)
+                text = extract_text_from_image(image)
+            
+            if text.strip():
+                # Save text to Firebase
+                text_id = save_text_to_firebase(text)
+                if text_id:
+                    st.success(f"Text extracted! Your Document ID: **{text_id}**")
+                    # st.image(f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={text_id}")
+            else:
+                st.warning("No text could be extracted")
+
+    elif option == "Take Picture":
+        picture = st.camera_input("Take a picture")
+        
+        if picture:
+            # Extract text from image
+            image = Image.open(BytesIO(picture.getvalue()))
             text = extract_text_from_image(image)
-        
-        if text.strip():
-            # Store text in Neon database
-            c = conn.cursor()
-            c.execute("INSERT INTO texts (content) VALUES (%s) RETURNING id", (text,))
-            text_id = c.fetchone()[0]  
-            conn.commit()
             
-            st.success(f"Text extracted! Your Document ID: **{text_id}**")
-            
-        else:
-            st.warning("No text could be extracted")
+            if text.strip():
+                # Save text to Firebase
+                text_id = save_text_to_firebase(text)
+                if text_id:
+                    st.success(f"Text extracted! Your Document ID: **{text_id}**")
+                    # st.image(f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={text_id}")
+            else:
+                st.warning("No text could be extracted")
 
-elif option == "Take Picture":
-    picture = st.camera_input("Take a picture")
-    
-    if picture:
-        image = Image.open(BytesIO(picture.getvalue()))
-        text = extract_text_from_image(image)
-        
-        if text.strip():
-            # Store text in Neon database
-            c = conn.cursor()
-            c.execute("INSERT INTO texts (content) VALUES (%s) RETURNING id", (text,))
-            text_id = c.fetchone()[0]  # Get the auto-generated ID
-            conn.commit()
-            
-            st.success(f"Text extracted! Your Document ID: **{text_id}**")
-            
-        else:
-            st.warning("No text could be extracted")
+if __name__ == "__main__":
+    main()
