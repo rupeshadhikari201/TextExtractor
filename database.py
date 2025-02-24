@@ -7,7 +7,7 @@ def init_firebase():
         # Check if Firebase app is already initialized
         if not firebase_admin._apps:
             # Load Firebase credentials
-            cred = credentials.Certificate("firebase-key.json")
+            cred = credentials.Certificate("cd.json")
             firebase_admin.initialize_app(cred)
             print("Firebase initialized successfully!")
         else:
